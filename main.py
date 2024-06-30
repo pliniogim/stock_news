@@ -1,6 +1,8 @@
 import json
 import requests
 import key
+from twilio.rest import Client
+
 # import datetime as dt
 
 stock_params = {
@@ -33,12 +35,18 @@ dates = [key for (key, value) in data_j["Time Series (Daily)"].items()]
 stock_price_on_day = data_j["Time Series (Daily)"][dates[0]]["4. close"]
 stock_price_day_before = data_j["Time Series (Daily)"][dates[1]]["4. close"]
 
-difference = round(abs(float(stock_price_on_day)
-                       - float(stock_price_day_before)), 2)
+# difference = round(abs(float(stock_price_on_day)
+#                        - float(stock_price_day_before)), 2)
+difference = round(float(stock_price_on_day) - float(stock_price_day_before))
+up_down = None
+if difference > 0:
+    up_down = "🔼"
+else:
+    up_down = "🔽"
 
-percentual_change = round((difference / float(stock_price_day_before)) * 100, 2)
+percentual_change = round((difference / float(stock_price_on_day)) * 100, 2)
 
-if percentual_change > 5:
+if abs(percentual_change) > 5:
     try:
         with open("news.json") as resp_file:
             news_j = json.load(resp_file)
@@ -50,16 +58,16 @@ if percentual_change > 5:
             json.dump(datan, resp_file)
 
 news_slice = news_j["articles"][0:3]
-for i in range(0, len(news_slice)):
-    print(news_slice[i]["title"])
+# for i in range(0, len(news_slice)):
+#     news_slice[i]["title"]
+messages = [f"{key.STOCK_NAME} {up_down} {percentual_change} Title: {item["title"]} Description: {item["description"]}" for item in news_slice]
 
-# STEP 3: Use twilio.com/docs/sms/quickstart/python
-# to send a separate message with each article's title and description to your phone number.
 
-# TODO 8. - Create a new list of the first 3 article's headline and description using list comprehension.
-
-# TODO 9. - Send each article as a separate message via Twilio.
-
+for messagein in messages:
+    client = Client(key.TW_ACCOUNT_SID, key.TW_AUTH)
+    message = client.messages.create(from_=key.TW_PHONE,
+                                     to=key.MY_OWN_PHONE,
+                                     body=messagein)
 
 # Optional TODO: Format the message like this:
 """
